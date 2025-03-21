@@ -1,32 +1,66 @@
-
-
-import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, User, LogOut, CheckCircle, BarChart3 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Calendar, Clock, User, LogOut, CheckCircle, BarChart3, Wallet } from 'lucide-react';
 import OpenBallotLogo from '@/components/OpenBallotLogo';
 import GhanaButton from '@/components/GhanaButton';
 import GlassCard from '@/components/GlassCard';
-import { toast } from "sonner"
+import { toast } from "sonner";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [userName, setUserName] = useState<string>("Voter");
+
+  // Load wallet address from local storage or URL params on component mount
+  useEffect(() => {
+    // Check if wallet address is in URL params (for first login)
+    const queryParams = new URLSearchParams(location.search);
+    const addressFromParams = queryParams.get('walletAddress');
+    
+    if (addressFromParams) {
+      // Save to local storage and state
+      localStorage.setItem('walletAddress', addressFromParams);
+      setWalletAddress(addressFromParams);
+      
+      // Clean up URL by removing the query parameter
+      navigate('/dashboard', { replace: true });
+    } else {
+      // Check local storage for wallet address
+      const storedAddress = localStorage.getItem('walletAddress');
+      if (storedAddress) {
+        setWalletAddress(storedAddress);
+      } else {
+        // Redirect to login if no wallet address is found
+        toast.error("No wallet connected. Please login again.");
+        navigate('/');
+      }
+    }
+    
+    // Get username if available
+    const storedName = localStorage.getItem('userName');
+    if (storedName) {
+      setUserName(storedName);
+    }
+  }, [location, navigate]);
 
   // Mock election data
   const activeElections = [
     {
-      id: '2023-presidential',
-      title: '2023 Presidential Election',
-      date: 'December 7, 2023',
+      id: '2025-presidential',
+      title: '2025 Presidential Election',
+      date: 'December 7, 2025',
       status: 'active',
       timeRemaining: '2 days',
       hasVoted: false
     },
     {
-      id: '2023-parliamentary',
-      title: '2023 Parliamentary Election',
-      date: 'December 7, 2023',
+      id: '2025-parliamentary',
+      title: '2025 Parliamentary Election',
+      date: 'December 7, 2025',
       status: 'active',
       timeRemaining: '2 days',
-      hasVoted: true
+      hasVoted: false
     }
   ];
 
@@ -41,7 +75,11 @@ const Dashboard = () => {
   ];
 
   const handleLogout = () => {
-    toast("Logged Out",{
+    // Clear wallet address from local storage on logout
+    localStorage.removeItem('walletAddress');
+    localStorage.removeItem('userName');
+    
+    toast("Logged Out", {
       description: "You have been successfully logged out.",
       duration: 3000,
     });
@@ -49,19 +87,25 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
+  // const formatDate = (dateString: string) => {
+  //   const options: Intl.DateTimeFormatOptions = { 
+  //     year: 'numeric', 
+  //     month: 'long', 
+  //     day: 'numeric' 
+  //   };
+  //   return new Date(dateString).toLocaleDateString('en-US', options);
+  // };
+
+  // Truncate wallet address for display
+  const truncateAddress = (address: string) => {
+    if (!address) return '';
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-white py-4 px-6">
+      <header className="bg-white py-4 px-6 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <OpenBallotLogo />
           
@@ -70,8 +114,16 @@ const Dashboard = () => {
               <div className="w-8 h-8 rounded-full bg-ghana-green flex items-center justify-center">
                 <User className="h-4 w-4 text-white" />
               </div>
-              <span className="ml-2 text-sm font-medium">John Kofi</span>
+              <span className="ml-2 text-sm font-medium">{userName}</span>
             </div>
+            
+            {walletAddress && (
+              <div className="hidden md:flex items-center bg-gray-100 rounded-full px-3 py-1">
+                <Wallet size={14} className="text-ghana-gold mr-2" />
+                <span className="text-xs font-mono">{truncateAddress(walletAddress)}</span>
+              </div>
+            )}
+            
             <GhanaButton 
               variant="black" 
               size="sm" 
@@ -87,10 +139,26 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="flex-1 py-12 px-6">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
-          <p className="text-gray-600 mb-8">
-            Welcome back, John Kofi. Here are your active and upcoming elections.
-          </p>
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Your Dashboard</h1>
+              <p className="text-gray-600">
+                Welcome back, {userName}. Here are your active and upcoming elections.
+              </p>
+            </div>
+            
+            {/* Wallet info card on mobile */}
+            {walletAddress && (
+              <div className="md:hidden">
+                <GlassCard className="p-3">
+                  <div className="flex items-center">
+                    <Wallet size={14} className="text-ghana-gold mr-2" />
+                    <span className="text-xs font-mono">{truncateAddress(walletAddress)}</span>
+                  </div>
+                </GlassCard>
+              </div>
+            )}
+          </div>
           
           {/* Active Elections */}
           <section className="mb-12">
@@ -133,7 +201,7 @@ const Dashboard = () => {
                       {!election.hasVoted && (
                         <GhanaButton 
                           variant="gold" 
-                          onClick={() => navigate(`/voting/${election.id}`)}
+                          onClick={() => navigate(`/voting/${election.id}?walletAddress=${walletAddress}`)}
                           fullWidth
                         >
                           Vote Now
@@ -206,7 +274,7 @@ const Dashboard = () => {
       <footer className="py-4 px-6 bg-white border-t border-gray-200">
         <div className="max-w-6xl mx-auto text-center">
           <p className="text-sm text-gray-500">
-            © 2023 OpenBallot. Secure electronic voting for the future.
+            © {new Date().getFullYear()} OpenBallot. Secure electronic voting for the future.
           </p>
         </div>
       </footer>

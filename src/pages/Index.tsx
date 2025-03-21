@@ -112,7 +112,7 @@ const Index = () => {
       <footer className="py-8 px-6 bg-black !text-white text-center">
         <div className="max-w-5xl mx-auto">
           {/* <OpenBallotLogo className="mx-auto mb-4 !text-white" /> */}
-          <p className="!text-white">© 2023 OpenBallot. Secure electronic voting for the future.</p>
+          <p className="!text-white">© 2025 OpenBallot. Secure electronic voting for the future.</p>
         </div>
       </footer>
     </div>

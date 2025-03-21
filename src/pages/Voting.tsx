@@ -77,13 +77,13 @@ const Voting = () => {
     setTimeout(() => {
       if (electionId?.includes('presidential')) {
         setElectionDetails({
-          title: '2023 Presidential Election',
+          title: '2025 Presidential Election',
           type: 'Presidential and Parliamentary',
           constituency: 'Ayawaso West Wuogon'
         });
       } else {
         setElectionDetails({
-          title: '2023 Parliamentary Election',
+          title: '2025 Parliamentary Election',
           type: 'Parliamentary Only',
           constituency: 'Ayawaso West Wuogon'
         });
@@ -362,7 +362,7 @@ const Voting = () => {
       <footer className="py-4 px-6 bg-white border-t border-gray-200">
         <div className="max-w-6xl mx-auto text-center">
           <p className="text-sm text-gray-500">
-            © 2023 OpenBallot. Secure electronic voting for the future.
+            © 2025 OpenBallot. Secure electronic voting for the future.
           </p>
         </div>
       </footer>
