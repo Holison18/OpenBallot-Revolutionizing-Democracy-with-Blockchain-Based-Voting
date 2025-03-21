@@ -10,15 +10,14 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* color: rgba(255, 255, 255, 0.87); */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: hsl(0, 0%, 100%);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
@@ -58,12 +57,12 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #000000;
   text-decoration: inherit;
 }
 
 a:hover {
-  color: #535bf2;
+  color: #a1a4e6f5;
 }
 
 body {
@@ -81,7 +80,7 @@ h1 {
 
 
 button:hover {
-  border-color: #646cff;
+  border-color: #000000;
 }
 
 button:focus,
@@ -184,7 +183,7 @@ button:focus-visible {
 }
 
 
-@theme dark {
+/* @theme dark {
   --color-background: hsl(222.2, 84%, 4.9%);
   --color-foreground: hsl(210, 40%, 98%);
   --color-card: hsl(222.2, 84%, 4.9%);
@@ -204,7 +203,7 @@ button:focus-visible {
   --color-border: hsl(217.2, 32.6%, 17.5%);
   --color-input: hsl(217.2, 32.6%, 17.5%);
   --color-ring: hsl(212.7, 26.8%, 83.9%);
-}
+} */
 
 
 h1,
@@ -215,4 +214,128 @@ h5,
 h6,
 p, div {
   color: #171717;
+}
+
+
+/* Utilities */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glassmorphism {
+    background-color: rgba(255, 255, 255, 0.8); /* equivalent to bg-white/80 */
+    backdrop-filter: blur(16px);              /* equivalent to backdrop-blur-lg */
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2); /* border & border-white/20 */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+  }
+
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+  .animate-delay-500 { animation-delay: 500ms; }
+}
+
+/* Define keyframes for the fadeIn animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Components */
+@layer components {
+  .openballot-input {
+    height: 3rem;                       /* h-12 */
+    padding: 0.5rem 1rem;                /* py-2 & px-4 */
+    border-radius: var(--rounded-lg, 0.5rem);
+    border: 1px solid var(--border, #E5E7EB);
+    background-color: var(--color-white, #ffffff);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .openballot-input:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 1px var(--ring, #3B82F6);
+  }
+
+  .openballot-button {
+    height: 3rem;                       /* h-12 */
+    padding: 0.5rem 1.5rem;              /* py-2 & px-6 */
+    border-radius: var(--rounded-lg, 0.5rem);
+    font-weight: 500;                   /* font-medium */
+    display: flex;                      /* flex */
+    align-items: center;                /* items-center */
+    justify-content: center;            /* justify-center */
+    gap: 0.5rem;                        /* gap-2 */
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .openballot-button-primary {
+    background-color: var(--color-ghana-red, #D32F2F);
+    color: var(--color-white, #ffffff);
+    box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+    transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+                transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .openballot-button-primary:hover {
+    /* hover:bg-opacity-90: adjust bg color opacity on hover */
+    background-color: rgba(211, 47, 47, 0.9);
+  }
+  .openballot-button-primary:active {
+    transform: scale(0.98);
+  }
+
+  .openballot-button-secondary {
+    background-color: var(--color-secondary, #F5F5F5);
+    color: var(--color-foreground, #333333);
+    transition: background-color 200ms cubic-bezier(0.4, 0, 0.2, 1),
+                transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .openballot-button-secondary:hover {
+    background-color: rgba(245, 245, 245, 0.8); /* hover:bg-secondary/80 */
+  }
+  .openballot-button-secondary:active {
+    transform: scale(0.98);
+  }
+
+  .openballot-card {
+    border-radius: var(--rounded-xl, 0.75rem); /* rounded-xl */
+    border: 1px solid var(--border, #E5E7EB);
+    background-color: var(--color-card, #FFFFFF);
+    padding: 1.5rem;                   /* p-6 */
+    box-shadow: var(--shadow-sm, 0 1px 2px 0 rgba(0, 0, 0, 0.05));
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .openballot-card:hover {
+    /* hover:shadow-md */
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1),
+                0 2px 4px -1px rgba(0,0,0,0.06);
+  }
+
+  .page-transition {
+    animation: fadeIn 0.5s ease-in-out forwards;
+  }
+
+  .page-container {
+    max-width: 80rem;       /* Tailwind max-w-7xl (80rem) */
+    margin-left: auto;      /* mx-auto */
+    margin-right: auto;
+    padding-top: 2rem;      /* py-8 */
+    padding-bottom: 2rem;
+    padding-left: 1rem;     /* px-4 */
+    padding-right: 1rem;
+  }
+  @media (min-width: 640px) {
+    .page-container {
+      padding-left: 1.5rem; /* sm:px-6 */
+      padding-right: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .page-container {
+      padding-left: 2rem;   /* lg:px-8 */
+      padding-right: 2rem;
+    }
+  }
 }
