@@ -501,8 +501,13 @@ const Voting = () => {
               <h4 className="text-sm font-medium mb-2">Transaction Details</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Election ID</span>
-                  <span className="font-mono">{electionDetails.id}</span>
+                    <span className="text-gray-600">Election ID</span>
+                    <input 
+                    type="text" 
+                    className="font-mono border border-gray-300 rounded px-2 py-1 text-sm"
+                    value={electionDetails.id}
+                    onChange={(e) => setElectionDetails(prev => prev ? { ...prev, id: e.target.value } : null)}
+                    />
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Gas Fee (estimated)</span>
@@ -529,9 +534,9 @@ const Voting = () => {
             
             {!walletInfo.isReady ? (
               <div className="flex flex-col sm:flex-row gap-2">
-                <GhanaButton variant="gold" onClick={handleCopyWalletAddress}>
+                {/* <GhanaButton variant="gold" onClick={handleCopyWalletAddress}>
                   Copy Address for Funding
-                </GhanaButton>
+                </GhanaButton> */}
                 <GhanaButton variant="gold" disabled>
                   <ExternalLink className="h-4 w-4 mr-1" /> Fund Wallet
                 </GhanaButton>
