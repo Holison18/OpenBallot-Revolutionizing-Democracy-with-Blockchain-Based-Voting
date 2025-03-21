@@ -1,139 +1,185 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Upload, CheckCircle, Camera, Fingerprint, Key, ArrowLeft, ArrowRight } from 'lucide-react';
-import OpenBallotLogo from '@/components/OpenBallotLogo';
 import GhanaButton from '@/components/GhanaButton';
-import GlassCard from '@/components/GlassCard';
-import StepIndicator from '@/components/StepIndicator';
-import { toast } from "sonner"
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import OpenBallotLogo from '@/components/OpenBallotLogo';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useNavigation } from 'react-router-dom';
 
-const Register = () => {
-  const navigate = useNavigate();
+const RegistrationPage = () => {
   const [step, setStep] = useState(1);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [dragActive, setDragActive] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
-    idNumber: '',
-    dateOfBirth: '',
-    secretPhrase: '',
-    biometricCaptured: false
+    voterId: '',
+    images: [] as File[]
   });
+  const [errors, setErrors] = useState({});
+  const [webcamActive, setWebcamActive] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const navigate = useNavigate()
 
-  const steps = ['ID Upload', 'Verification', 'Secret Phrase', 'Biometric'];
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
+  useEffect(() => {
+    return () => {
+      // Clean up webcam stream when component unmounts
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const validateStep1 = () => {
+    const newErrors = {};
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
     }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+    if (!formData.voterId.trim()) {
+      newErrors.voterId = 'Voter ID is required';
+    } else if (!/^[A-Z0-9]{10,12}$/i.test(formData.voterId.trim())) {
+      newErrors.voterId = 'Please enter a valid Voter ID';
     }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
-    }
-  };
-
-  const handleFile = (file: File) => {
-    setUploadedFile(file);
-    toast("File Uploaded",{
-      description: `${file.name} has been uploaded successfully.`,
-      duration: 3000,
-    });
-  };
-
-  const extractInformation = () => {
-    // Simulate extraction with mock data
-    setTimeout(() => {
-      setFormData({
-        ...formData,
-        fullName: 'John Kofi Agyemang',
-        idNumber: 'GHA-293847156',
-        dateOfBirth: '1985-06-15'
-      });
-      
-      toast("Information Extracted",{
-        description: "Your ID information has been successfully extracted.",
-        duration: 3000,
-      });
-      
+  const handleStep1Next = () => {
+    if (validateStep1()) {
       setStep(2);
-    }, 1500);
-  };
-
-  const handleVerification = () => {
-    setTimeout(() => {
-      toast("Verification Complete", {
-        description: "Your identity has been verified successfully.",
-        duration: 3000,
-      });
-      
-      setStep(3);
-    }, 1500);
-  };
-
-  const handleSecretPhrase = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.secretPhrase) {
-      toast("Error", {
-        description: "Please enter your secret phrase",
-        duration: 3000,
-      });
-      return;
+      startWebcam();
     }
-    
-    setStep(4);
   };
 
-  const handleBiometric = () => {
-    setFormData({
-      ...formData,
-      biometricCaptured: true
-    });
-    
-    setTimeout(() => {
-      toast("Registration Complete", {
-        description: "Your account has been created successfully.",
-        duration: 3000,
-      });
-      
-      navigate('/dashboard');
-    }, 2000);
+  const handleStep2Next = () => {
+    if (formData.images.length >= 2) {
+      setStep(3);
+      stopWebcam();
+    } else {
+      setErrors({ images: 'Please capture two images' });
+    }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value
+    }));
+  };
+
+  const startWebcam = async () => {
+    try {
+      const constraints = { video: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setWebcamActive(true);
+      }
+    } catch (err) {
+      console.error('Error accessing webcam:', err);
+      setErrors({ webcam: 'Error accessing webcam. Please check your camera permissions.' });
+    }
+  };
+
+  const stopWebcam = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      setWebcamActive(false);
+    }
+  };
+
+  const captureImage = () => {
+    if (videoRef.current && webcamActive) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+      const imageDataUrl = canvas.toDataURL('image/jpeg');
+
+      if (formData.images.length < 3) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, imageDataUrl]
+        }));
+        setErrors(prev => ({ ...prev, images: null }));
+      }
+    }
+  };
+
+
+
+  const handleConfirm = async () => {
+    try {
+      const formDataToSend = new FormData();
+
+      // Append text fields
+      formDataToSend.append('name', formData.fullName);
+      formDataToSend.append('voter_id', formData.voterId.toString());
+
+      // Verify and append image files
+      // console.log(formData.images)
+      if (formData.images && formData.images.length > 0) {
+        for (const [index, imageFile] of formData.images.entries()) {
+          // Ensure we have a valid File object
+          console.log(imageFile)
+          const response = await fetch(imageFile);
+          const blob = await response.blob();
+          formDataToSend.append(
+            'images',
+            blob,
+            `image-${index}.jpeg`
+          );
+        }
+      }
+
+      // Submit to server
+      const response = await fetch('http://localhost:3001/register', {
+        method: 'POST',
+        body: formDataToSend,
+        credentials: 'include' // Include cookies if needed
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Submission failed');
+      }
+
+      console.log('Submission successful:', responseData);
+      // Handle successful submission
+      navigate("/login")
+
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      // Handle error (show to user)
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      fullName: '',
+      voterId: '',
+      images: []
     });
+    setStep(1);
+    setRegistrationComplete(false);
+    setErrors({});
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <header className="bg-white  py-4 px-6">
+    <div className='min-h-screen flex flex-col h-full'>
+      <header className="bg-white py-4 px-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <GhanaButton 
-              variant="black" 
-              size="sm" 
+            <GhanaButton
+              variant="black"
+              size="sm"
               onClick={() => navigate('/')}
               className="mr-4"
             >
@@ -143,267 +189,183 @@ const Register = () => {
           </div>
         </div>
       </header>
-      
-      {/* Main Content */}
-      <main className="flex-1 py-12 px-6">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8 text-center">Create Your Account</h1>
-          
-          <StepIndicator 
-            steps={steps} 
-            currentStep={step}
-            className="mb-8" 
-          />
-          
-          <GlassCard className="p-8 animate-fade-in">
-            {/* Step 1: ID Upload */}
-            {step === 1 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold mb-4">Upload Your ID</h2>
-                <p className="text-gray-600 mb-6">
-                  Please upload a clear photo of your Ghana Card or Voter ID.
-                </p>
-                
-                <div 
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
-                    dragActive 
-                      ? 'border-ghana-gold bg-ghana-gold/5' 
-                      : uploadedFile 
-                      ? 'border-ghana-green bg-ghana-green/5' 
-                      : 'border-gray-300 hover:border-ghana-gold'
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <div className="flex flex-col items-center">
-                    {uploadedFile ? (
-                      <>
-                        <CheckCircle className="h-12 w-12 text-ghana-green mb-4" />
-                        <p className="text-ghana-green font-medium mb-2">
-                          {uploadedFile.name}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          File uploaded successfully
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                        <p className="font-medium mb-2">
-                          Drag and drop your ID, or click to browse
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Supports JPG, PNG, PDF up to 5MB
-                        </p>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleFileInput}
-                      className="hidden"
-                      id="file-upload"
-                    />
-                    {!uploadedFile && (
-                      <label htmlFor="file-upload">
-                        <GhanaButton 
-                          variant="gold" 
-                          size="sm" 
-                          className="mt-4 cursor-pointer"
-                          type="button"
-                        >
-                          Select File
-                        </GhanaButton>
-                      </label>
-                    )}
-                  </div>
-                </div>
-                
-                {uploadedFile && (
-                  <div className="flex justify-center">
-                    <GhanaButton 
-                      variant="green" 
-                      onClick={extractInformation}
-                      className="mt-4"
-                    >
-                      Extract Information
-                    </GhanaButton>
-                  </div>
-                )}
+
+      <div className="h-full flex-1 bg-white flex flex-col items-center justify-center p-4">
+
+        <div className="w-full max-w-md">
+
+          {registrationComplete ? (
+            <div className="bg-white  rounded-lg p-6 text-center">
+              <div className="text-green-600 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-            )}
-            
-            {/* Step 2: Verification */}
-            {step === 2 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold mb-4">Verify Your Information</h2>
-                <p className="text-gray-600 mb-6">
-                  Please verify that your details are correct.
-                </p>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
+              <h2 className="text-2xl font-bold text-black mb-4">Registration Complete!</h2>
+              <p className="text-gray-700 mb-6">Thank you for registering with OpenBallot.</p>
+              <button
+                onClick={resetForm}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
+              >
+                Register Another User
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-300 rounded-lg p-6">
+              {step === 1 && (
+                <div>
+                  <h2 className="text-xl font-bold text-green-600 mb-6">Enter Your Details</h2>
+                  <div className="mb-4">
+                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="fullName">
+                      Full Name
+                    </label>
+                    <input
                       id="fullName"
                       name="fullName"
+                      type="text"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      className="w-full"
+                      className={`shadow appearance-none border ${errors.fullName ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+                      placeholder="Enter your full name"
                     />
+                    {errors.fullName && <p className="text-red-500 text-xs italic mt-1">{errors.fullName}</p>}
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="idNumber">ID Number</Label>
-                    <Input
-                      id="idNumber"
-                      name="idNumber"
-                      value={formData.idNumber}
+                  <div className="mb-6">
+                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="voterId">
+                      Voter ID
+                    </label>
+                    <input
+                      id="voterId"
+                      name="voterId"
+                      type="text"
+                      value={formData.voterId}
                       onChange={handleInputChange}
-                      className="w-full"
+                      className={`shadow appearance-none border ${errors.voterId ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+                      placeholder="Enter your voter ID"
                     />
+                    {errors.voterId && <p className="text-red-500 text-xs italic mt-1">{errors.voterId}</p>}
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                    <Input
-                      id="dateOfBirth"
-                      name="dateOfBirth"
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={handleInputChange}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex justify-between mt-8">
-                  <GhanaButton 
-                    variant="black" 
-                    onClick={() => setStep(1)}
+                  <Button
+                    onClick={handleStep1Next}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
                   >
-                    <ArrowLeft size={16} className="mr-1" /> Back
-                  </GhanaButton>
-                  <GhanaButton 
-                    variant="green" 
-                    onClick={handleVerification}
-                  >
-                    Continue <ArrowRight size={16} className="ml-1" />
-                  </GhanaButton>
+                    Next
+                  </Button>
                 </div>
-              </div>
-            )}
-            
-            {/* Step 3: Secret Phrase */}
-            {step === 3 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold mb-4">Create Your Secret Phrase</h2>
-                <p className="text-gray-600 mb-6">
-                  Your secret phrase will be used to verify your identity during voting. Make sure it's memorable but not easily guessable.
-                </p>
-                
-                <form onSubmit={handleSecretPhrase} className="space-y-4">
-                  <div>
-                    <Label htmlFor="secretPhrase">Secret Phrase</Label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                      <Input
-                        id="secretPhrase"
-                        name="secretPhrase"
-                        value={formData.secretPhrase}
-                        onChange={handleInputChange}
-                        className="pl-10 w-full"
-                        placeholder="Enter a memorable phrase"
-                        required
+              )}
+
+              {step === 2 && (
+                <div>
+                  <h2 className="text-xl font-bold text-green-600 mb-6">Capture Your Face</h2>
+                  <div className="mb-4">
+                    <div className="bg-gray-100 rounded-lg overflow-hidden mb-4">
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        className="w-full h-auto"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Minimum 8 characters, should be easy for you to remember but hard for others to guess
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-between mt-8">
-                    <GhanaButton 
-                      variant="black" 
-                      type="button"
-                      onClick={() => setStep(2)}
-                    >
-                      <ArrowLeft size={16} className="mr-1" /> Back
-                    </GhanaButton>
-                    <GhanaButton 
-                      variant="green" 
-                      type="submit"
-                    >
-                      Continue <ArrowRight size={16} className="ml-1" />
-                    </GhanaButton>
-                  </div>
-                </form>
-              </div>
-            )}
-            
-            {/* Step 4: Biometric */}
-            {step === 4 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold mb-4">Biometric Verification</h2>
-                <p className="text-gray-600 mb-6">
-                  Please provide your biometric data to complete the registration process.
-                </p>
-                
-                <div className="flex flex-col items-center space-y-8 py-6">
-                  {formData.biometricCaptured ? (
-                    <div className="text-center">
-                      <div className="flex justify-center">
-                        <CheckCircle className="h-16 w-16 text-ghana-green mb-4" />
+
+                    {errors.webcam && (
+                      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        <p>{errors.webcam}</p>
                       </div>
-                      <p className="text-ghana-green font-medium text-lg">
-                        Biometric data captured successfully!
-                      </p>
+                    )}
+
+                    <Button
+                      onClick={captureImage}
+                      disabled={!webcamActive || formData.images.length >= 3}
+                      className={`w-full ${!webcamActive || formData.images.length >= 3
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-yellow-500 hover:bg-yellow-600'
+                        } text-black font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mb-4 transition duration-150`}
+                    >
+                      {formData.images.length >= 3 ? 'Three images captured' : 'Capture Image'}
+                    </Button>
+
+                    {errors.images && <p className="text-red-500 text-xs italic mb-2">{errors.images}</p>}
+
+                    <div className="flex justify-center space-x-4 mb-6">
+                      {formData.images.map((img, idx) => (
+                        <div key={idx} className="border border-gray-300 rounded overflow-hidden w-full aspect-square">
+                          <img src={img} alt={`Captured image ${idx + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                      {Array(3 - formData.images.length).fill(0).map((_, idx) => (
+                        <div key={`empty-${idx}`} className="border border-gray-300 rounded bg-gray-100 w-full aspect-square flex items-center justify-center">
+                          <span className="text-gray-400 text-xs">Image {formData.images.length + idx + 1}</span>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <>
-                      <div className="w-32 h-32 rounded-full border-2 border-ghana-gold flex items-center justify-center bg-ghana-gold/5 animate-pulse-soft">
-                        <Fingerprint className="h-16 w-16 text-ghana-gold" />
-                      </div>
-                      <p className="text-center text-sm text-gray-600">
-                        Place your finger on the fingerprint scanner
-                      </p>
-                      <GhanaButton 
-                        variant="gold" 
-                        onClick={handleBiometric}
-                        className="mt-4"
+
+                    <div className="flex space-x-4">
+                      <Button
+                        onClick={() => {
+                          setStep(1);
+                          stopWebcam();
+                        }}
+                        className="w-1/2 bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
                       >
-                        Capture Biometric
-                      </GhanaButton>
-                    </>
-                  )}
+                        Back
+                      </Button>
+                      <Button
+                        onClick={handleStep2Next}
+                        className="w-1/2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="flex justify-between mt-8">
-                  <GhanaButton 
-                    variant="black" 
-                    onClick={() => setStep(3)}
-                    disabled={formData.biometricCaptured}
-                  >
-                    <ArrowLeft size={16} className="mr-1" /> Back
-                  </GhanaButton>
-                  {formData.biometricCaptured && (
-                    <GhanaButton 
-                      variant="green" 
-                      onClick={() => navigate('/dashboard')}
+              )}
+
+              {step === 3 && (
+                <div>
+                  <h2 className="text-xl font-bold text-green-600 mb-6">Confirm Your Details</h2>
+                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600">Full Name</p>
+                      <p className="font-semibold text-black">{formData.fullName}</p>
+                    </div>
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600">Voter ID</p>
+                      <p className="font-semibold text-black">{formData.voterId}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">Captured Images</p>
+                      <div className="flex space-x-4">
+                        {formData.images.map((img, idx) => (
+                          <div key={idx} className="border border-gray-300 rounded overflow-hidden w-24 h-24">
+                            <img src={img} alt={`Captured image ${idx + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex space-x-4">
+                    <Button
+                      onClick={() => {
+                        setStep(2);
+                        startWebcam();
+                      }}
+                      className="w-1/2 bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
                     >
-                      Complete Registration <ArrowRight size={16} className="ml-1" />
-                    </GhanaButton>
-                  )}
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleConfirm}
+                      className="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150"
+                    >
+                      Confirm
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </GlassCard>
+              )}
+            </div>
+          )}
         </div>
-      </main>
-      
-      {/* Footer */}
+      </div>
       <footer className="py-4 px-6 bg-white border-t border-gray-200">
         <div className="max-w-5xl mx-auto text-center">
           <p className="text-sm text-gray-500">
@@ -415,4 +377,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default RegistrationPage;

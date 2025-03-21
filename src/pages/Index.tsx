@@ -32,7 +32,7 @@ const Index = () => {
       {/* Hero Section */}
       <div className="relative flex-1 flex flex-col">
         {/* Background with subtle pattern */}
-        <div className="absolute inset-0 bg-grid-black/[0.02] bg-[length:20px_20px] bg-foreground/95" />
+        <div className="absolute inset-0 bg-grid-black/[0.02] bg-[length:20px_20px] bg-white" />
         
         {/* Navbar */}
         <nav className="relative z-10 flex items-center justify-between px-6 py-4 md:px-10">
@@ -84,7 +84,7 @@ const Index = () => {
       </div>
       
       {/* Features Section */}
-      <section className="py-16 px-6 bg-gray-50">
+      <section className="py-16 px-6  bg-foreground/95">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-12">Why Choose OpenBallot?</h2>
           

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, User, MapPin } from 'lucide-react';
 import OpenBallotLogo from '@/components/OpenBallotLogo';
@@ -7,6 +7,8 @@ import GhanaButton from '@/components/GhanaButton';
 import GlassCard from '@/components/GlassCard';
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner"
+import axios from 'axios';
+import { ElectionBody, PalCandidates, PresCandidates } from '@/hooks/elections';
 
 
 interface Candidate {
@@ -25,83 +27,52 @@ const Voting = () => {
     constituency: string;
   } | null>(null);
   const [step, setStep] = useState(1);
-  const [selectedPresident, setSelectedPresident] = useState<string | null>(null);
-  const [selectedMP, setSelectedMP] = useState<string | null>(null);
+  const [selectedPresident, setSelectedPresident] = useState<number | null>(null);
+  const [selectedMP, setSelectedMP] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Mock candidates data
-  const presidentialCandidates: Candidate[] = [
-    {
-      id: 'p1',
-      name: 'John Mahama',
-      party: 'National Democratic Congress',
-      image: 'https://via.placeholder.com/150'
-    },
-    {
-      id: 'p2',
-      name: 'Nana Akufo-Addo',
-      party: 'New Patriotic Party',
-      image: 'https://via.placeholder.com/150'
-    },
-    {
-      id: 'p3',
-      name: 'Ivor Greenstreet',
-      party: 'Convention People\'s Party',
-      image: 'https://via.placeholder.com/150'
-    }
-  ];
+  const [presidentialCandidates, setPresidentialCandidates] = useState<PresCandidates[]>([]);
 
-  const parliamentaryCandidates: Candidate[] = [
-    {
-      id: 'm1',
-      name: 'Samuel Atta Mills',
-      party: 'National Democratic Congress',
-      image: 'https://via.placeholder.com/150'
-    },
-    {
-      id: 'm2',
-      name: 'Abena Osei-Asare',
-      party: 'New Patriotic Party',
-      image: 'https://via.placeholder.com/150'
-    },
-    {
-      id: 'm3',
-      name: 'Sarah Adwoa Safo',
-      party: 'Independent',
-      image: 'https://via.placeholder.com/150'
-    }
-  ];
+  const [parliamentaryCandidates, setParliamentaryCandidates] = useState<PalCandidates[]>([]);
+
 
   useEffect(() => {
     // Simulate fetching election details
     setTimeout(() => {
-      if (electionId?.includes('presidential')) {
-        setElectionDetails({
-          title: '2023 Presidential Election',
-          type: 'Presidential and Parliamentary',
-          constituency: 'Ayawaso West Wuogon'
-        });
-      } else {
-        setElectionDetails({
-          title: '2023 Parliamentary Election',
-          type: 'Parliamentary Only',
-          constituency: 'Ayawaso West Wuogon'
-        });
-      }
+      setElectionDetails({
+        title: '2023 Presidential Election',
+        type: 'Presidential and Parliamentary',
+        constituency: 'Ayawaso West Wuogon'
+      });
     }, 500);
+
+    async function LoadElection() {
+      const res = await axios.get("http://localhost:3001/election/" + electionId)
+      const data = res.data as ElectionBody
+      setElectionDetails({
+        title: data.elections.title,
+        type: 'Presidential and Parliamentary',
+        constituency: 'Ayawaso West Wuogon'
+      });
+
+      setPresidentialCandidates(data.pres_candidates)
+      setParliamentaryCandidates(data.pal_candidates)
+    }
+    LoadElection()
   }, [electionId]);
 
-  const handleSelectPresident = (candidateId: string) => {
+  const handleSelectPresident = (candidateId: number) => {
     setSelectedPresident(candidateId);
   };
 
-  const handleSelectMP = (candidateId: string) => {
+  const handleSelectMP = (candidateId: number) => {
     setSelectedMP(candidateId);
   };
 
   const handleReview = () => {
     if (!selectedPresident && electionDetails?.type.includes('Presidential')) {
-      toast("Selection Required",{
+      toast("Selection Required", {
         description: "Please select a presidential candidate.",
         duration: 3000,
       });
@@ -121,21 +92,21 @@ const Voting = () => {
 
   const handleSubmitVote = () => {
     setIsSubmitting(true);
-    
+
     // Simulate vote submission
     setTimeout(() => {
       setIsSubmitting(false);
-      
-      toast("Vote Submitted",{
+
+      toast("Vote Submitted", {
         description: "Your vote has been recorded successfully.",
         duration: 3000,
       });
-      
+
       navigate(`/results/${electionId}`);
     }, 2000);
   };
 
-  const getSelectedCandidate = (candidateId: string | null, candidates: Candidate[]) => {
+  const getSelectedCandidate = (candidateId: number | null, candidates: PalCandidates[] | PresCandidates[]) => {
     return candidateId ? candidates.find(c => c.id === candidateId) : null;
   };
 
@@ -156,9 +127,9 @@ const Voting = () => {
       <header className="bg-white  py-4 px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center">
-            <GhanaButton 
-              variant="black" 
-              size="sm" 
+            <GhanaButton
+              variant="black"
+              size="sm"
               onClick={() => navigate('/dashboard')}
               className="mr-4"
             >
@@ -168,7 +139,7 @@ const Voting = () => {
           </div>
         </div>
       </header>
-      
+
       {/* Main Content */}
       <main className="flex-1 py-12 px-6">
         <div className="max-w-4xl mx-auto">
@@ -179,7 +150,7 @@ const Voting = () => {
               <span>Constituency: {electionDetails.constituency}</span>
             </div>
           </div>
-          
+
           {step === 1 ? (
             <div className="space-y-8 animate-fade-in">
               {electionDetails.type.includes('Presidential') && (
@@ -188,16 +159,15 @@ const Voting = () => {
                   <p className="text-gray-600 mb-6">
                     Select your preferred candidate for President
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {presidentialCandidates.map((candidate) => (
-                      <GlassCard 
-                        key={candidate.id} 
-                        className={`p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
-                          selectedPresident === candidate.id 
-                            ? 'ring-2 ring-ghana-green bg-ghana-green/5' 
+                      <GlassCard
+                        key={candidate.id}
+                        className={`p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${selectedPresident === candidate.id
+                            ? 'ring-2 ring-ghana-green bg-ghana-green/5'
                             : ''
-                        }`}
+                          }`}
                         onClick={() => handleSelectPresident(candidate.id)}
                       >
                         <div className="flex flex-col items-center text-center">
@@ -206,10 +176,10 @@ const Voting = () => {
                               <User className="h-12 w-12 text-gray-400" />
                             </div>
                           </div>
-                          
+
                           <h3 className="text-lg font-semibold mb-1">{candidate.name}</h3>
-                          <p className="text-sm text-gray-600 mb-4">{candidate.party}</p>
-                          
+                          <p className="text-sm text-gray-600 mb-4">{candidate.political_party}</p>
+
                           {selectedPresident === candidate.id && (
                             <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-ghana-green">
                               <Check className="h-4 w-4 text-white" />
@@ -221,24 +191,23 @@ const Voting = () => {
                   </div>
                 </section>
               )}
-              
+
               <Separator className="my-8" />
-              
+
               <section>
                 <h2 className="text-2xl font-semibold mb-4">Parliamentary Candidates</h2>
                 <p className="text-gray-600 mb-6">
                   Select your preferred candidate for Member of Parliament
                 </p>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {parliamentaryCandidates.map((candidate) => (
-                    <GlassCard 
-                      key={candidate.id} 
-                      className={`p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${
-                        selectedMP === candidate.id 
-                          ? 'ring-2 ring-ghana-green bg-ghana-green/5' 
+                    <GlassCard
+                      key={candidate.id}
+                      className={`p-6 cursor-pointer transition-all duration-300 hover:shadow-md ${selectedMP === candidate.id
+                          ? 'ring-2 ring-ghana-green bg-ghana-green/5'
                           : ''
-                      }`}
+                        }`}
                       onClick={() => handleSelectMP(candidate.id)}
                     >
                       <div className="flex flex-col items-center text-center">
@@ -247,10 +216,10 @@ const Voting = () => {
                             <User className="h-12 w-12 text-gray-400" />
                           </div>
                         </div>
-                        
+
                         <h3 className="text-lg font-semibold mb-1">{candidate.name}</h3>
-                        <p className="text-sm text-gray-600 mb-4">{candidate.party}</p>
-                        
+                        <p className="text-sm text-gray-600 mb-4">{candidate.political_party}</p>
+
                         {selectedMP === candidate.id && (
                           <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-ghana-green">
                             <Check className="h-4 w-4 text-white" />
@@ -261,10 +230,10 @@ const Voting = () => {
                   ))}
                 </div>
               </section>
-              
+
               <div className="flex justify-end mt-8">
-                <GhanaButton 
-                  variant="gold" 
+                <GhanaButton
+                  variant="gold"
                   size="lg"
                   onClick={handleReview}
                   className="flex items-center gap-2"
@@ -282,7 +251,7 @@ const Voting = () => {
                     Please confirm your selections before submitting your vote
                   </p>
                 </div>
-                
+
                 <div className="space-y-8">
                   {electionDetails.type.includes('Presidential') && (
                     <div>
@@ -294,13 +263,13 @@ const Voting = () => {
                               <User className="h-8 w-8 text-gray-400" />
                             </div>
                           </div>
-                          
+
                           <div>
                             <p className="font-semibold">
                               {getSelectedCandidate(selectedPresident, presidentialCandidates)?.name}
                             </p>
                             <p className="text-sm text-gray-600">
-                              {getSelectedCandidate(selectedPresident, presidentialCandidates)?.party}
+                              {getSelectedCandidate(selectedPresident, presidentialCandidates)?.political_party}
                             </p>
                           </div>
                         </div>
@@ -309,7 +278,7 @@ const Voting = () => {
                       )}
                     </div>
                   )}
-                  
+
                   <div>
                     <h3 className="text-lg font-semibold mb-4">Parliamentary Candidate</h3>
                     {selectedMP ? (
@@ -319,13 +288,13 @@ const Voting = () => {
                             <User className="h-8 w-8 text-gray-400" />
                           </div>
                         </div>
-                        
+
                         <div>
                           <p className="font-semibold">
                             {getSelectedCandidate(selectedMP, parliamentaryCandidates)?.name}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {getSelectedCandidate(selectedMP, parliamentaryCandidates)?.party}
+                            {getSelectedCandidate(selectedMP, parliamentaryCandidates)?.political_party}
                           </p>
                         </div>
                       </div>
@@ -334,17 +303,17 @@ const Voting = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between mt-12">
-                  <GhanaButton 
-                    variant="black" 
+                  <GhanaButton
+                    variant="black"
                     onClick={() => setStep(1)}
                   >
                     <ArrowLeft size={16} className="mr-1" /> Back to Selection
                   </GhanaButton>
-                  
-                  <GhanaButton 
-                    variant="red" 
+
+                  <GhanaButton
+                    variant="red"
                     size="lg"
                     onClick={handleSubmitVote}
                     disabled={isSubmitting}
@@ -357,7 +326,7 @@ const Voting = () => {
           )}
         </div>
       </main>
-      
+
       {/* Footer */}
       <footer className="py-4 px-6 bg-white border-t border-gray-200">
         <div className="max-w-6xl mx-auto text-center">
