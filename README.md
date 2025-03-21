@@ -86,11 +86,6 @@ export default tseslint.config({
 })
 ```
 
-### Why React + TypeScript + Vite?
-- **React**: Component-based UI for modular and scalable development.
-- **TypeScript**: Ensures type safety and reduces runtime errors.
-- **Vite**: Fast build times, hot module replacement (HMR), and modern tooling.
-- **ESLint + Plugins**: Enforces best coding practices and code maintainability.
 
 ## Conclusion
 OpenBallot is a next-generation voting system that ensures security, anonymity, and integrity in elections. With a combination of **blockchain, zk-proofs, Merkle trees, and biometric authentication**, it provides a robust and trustworthy platform suitable for governments, organizations, and institutions worldwide.
